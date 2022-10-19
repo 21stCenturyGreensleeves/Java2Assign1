@@ -8,7 +8,7 @@ public class MovieAnalyzer {
     public MovieAnalyzer(String dataset_path) throws IOException {
         this.path = dataset_path;
     }
-//1======================================================================================================================
+    //1======================================================================================================================
     public Map<Integer, Integer> getMovieCountByYear() throws IOException {
         File file = new File(path);
         InputStream in = new FileInputStream(file);
@@ -36,7 +36,7 @@ public class MovieAnalyzer {
 //        System.out.println(tar+"\n");
         return tar;
     }
-//2======================================================================================================================
+    //2======================================================================================================================
     public Map<String, Integer> getMovieCountByGenre() throws IOException {
         File file = new File(path);
         InputStream in = new FileInputStream(file);
@@ -74,7 +74,7 @@ public class MovieAnalyzer {
                 );
         return sortedMap;
     }
-//3======================================================================================================================
+    //3======================================================================================================================
     public Map<List<String>, Integer> getCoStarCount() throws IOException {
         File file = new File(path);
         InputStream in = new FileInputStream(file);
@@ -129,7 +129,7 @@ public class MovieAnalyzer {
                 );
         return sortedMap;
     }
-//4======================================================================================================================
+    //4======================================================================================================================
     public List<String> getTopMovies(int top_k, String by) throws IOException {
         File file = new File(path);
         InputStream in = new FileInputStream(file);
@@ -221,7 +221,7 @@ public class MovieAnalyzer {
         }
         return tar;
     }
-//5======================================================================================================================
+    //5======================================================================================================================
     public List<String> getTopStars(int top_k, String by) throws IOException {
         File file = new File(path);
         InputStream in = new FileInputStream(file);
@@ -231,49 +231,59 @@ public class MovieAnalyzer {
         br.readLine();
         List<String> tar = new ArrayList<>();
 
-        Map<String,Double> ratingMap = new HashMap<>();
+        Map<String, Double> ratingMap = new TreeMap<>(Comparator.naturalOrder());
         Map<String,Long> grossMap = new HashMap<>();
         Map<String,Double> timeMap = new HashMap<>();
+        Map<String,Double>  grossTimeMap = new HashMap<>();
         while((line = br.readLine()) != null){
 
             String[] arr = line.split(",(?=([^\"]*\"[^\"]*\")*[^\"]*$)", -1);
-            if(Objects.equals(arr[15], ""))continue;
-            arr[15] = arr[15].replace(",","");
-            arr[15] = arr[15].replace("\"","");
-            List<String> listT = new ArrayList<>();
-            listT.add(arr[10]);
-            listT.add(arr[11]);
-            listT.add(arr[12]);
-            listT.add(arr[13]);
-            Set<String> set = new HashSet<>();
-            set.addAll(listT);
-            String[] stars = set.toArray(new String[0]);
+            long gross;
+            if(!Objects.equals(arr[15], "")){
+                arr[15] = arr[15].replace(",","");
+                arr[15] = arr[15].replace("\"","");
+                gross = Long.parseLong(arr[15]);
+            } else {
+                gross = 0;
+            }
+            List<String> stars = new ArrayList<>();
+            stars.add(arr[10]);
+            stars.add(arr[11]);
+            stars.add(arr[12]);
+            stars.add(arr[13]);
+            float rating = Float.parseFloat(arr[6]);
             for (String star : stars) {
-                float rating1 = Float.parseFloat(arr[6]);
-                Long gross = Long.parseLong(arr[15]);
-                BigDecimal b = new BigDecimal(String.valueOf(rating1));
-                double rating = b.doubleValue();
-
                 if (!ratingMap.containsKey(star)) {
-                    ratingMap.put(star, 0.0000000000d+rating);
-                    grossMap.put(star, gross);
-                    timeMap.put(star,1d);
+                    ratingMap.put(star, (double) rating);
+                    timeMap.put(star,1.0);
                 } else {
-                    ratingMap.put(star, ratingMap.get(star) + rating+0.0000000000d);
-                    grossMap.put(star, grossMap.get(star) + gross);
+                    ratingMap.replace(star, ratingMap.get(star) + rating);
                     timeMap.put(star,timeMap.get(star)+1);
+
+                }
+            }for(String star : stars){
+                if(!grossMap.containsKey(star)){
+                    if(!Objects.equals(arr[15], "")){
+                        grossMap.put(star, gross);
+                        grossTimeMap.put(star,1.0);
+                    }
+                }else{
+                    if(!Objects.equals(arr[15], "")){
+                        grossMap.put(star, grossMap.get(star) + gross);
+                        grossTimeMap.put(star,grossTimeMap.get(star)+1);
+                    }
                 }
             }
         }
         for (Map.Entry<String, Double> entry : ratingMap.entrySet() ) {
             Double ratingSum = entry.getValue();
             String actor = entry.getKey();
-            ratingMap.put(actor,ratingSum/timeMap.get(actor)+0.0000000000d);
+            ratingMap.put(actor,ratingSum/timeMap.get(actor));
         }
         for (Map.Entry<String, Long> entry : grossMap.entrySet() ) {
             Long grossSum = entry.getValue();
             String actor = entry.getKey();
-            grossMap.put(actor, (long) (grossSum/timeMap.get(actor)));
+            grossMap.put(actor, (long) (grossSum/grossTimeMap.get(actor)));
         }
 
         Map<String, Double> sortedRatingMap = ratingMap.entrySet().stream()
@@ -286,7 +296,7 @@ public class MovieAnalyzer {
                 .sorted(Map.Entry.comparingByValue(new Comparator<Double>() {
                     @Override
                     public int compare(Double o1, Double o2) {
-                        return (int) (100000*(o2-o1));
+                        return o2.compareTo(o1);
                     }
                 }))
                 .collect(
@@ -315,7 +325,6 @@ public class MovieAnalyzer {
                         )
                 );
         int count = 0;
-        System.out.println(sortedRatingMap);
         if(by.equals("rating")){
             for (Map.Entry<String, Double> entry : sortedRatingMap.entrySet() ) {
                 if(count >= top_k){
@@ -339,7 +348,7 @@ public class MovieAnalyzer {
         }
         return tar;
     }
-//6======================================================================================================================
+    //6======================================================================================================================
     public List<String> searchMovies(String genre, float min_rating, int max_runtime) throws IOException {
         File file = new File(path);
         InputStream in = new FileInputStream(file);
