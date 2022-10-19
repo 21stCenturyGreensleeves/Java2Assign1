@@ -3,8 +3,9 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
+
 public class MovieAnalyzer {
-    String path;
+  String path;
     public MovieAnalyzer(String dataset_path) throws IOException {
         this.path = dataset_path;
     }
